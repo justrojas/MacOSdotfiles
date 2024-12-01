@@ -1,0 +1,13 @@
+{
+    "title": "Basic Space Navigation",
+    "rules": [{
+        "description": "Command + Number to switch spaces",
+        "manipulators": [
+            {
+                "from": {"key_code": "1", "modifiers": {"mandatory": ["command"]}},
+                "to": [{"shell_command": "/opt/homebrew/bin/yabai -m space --focus 1"}],
+                "type": "basic"
+            }
+        ]
+    }]
+}
