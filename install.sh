@@ -8,39 +8,75 @@ NC='\033[0m' # No Color
 
 # Dotfiles directory
 DOTFILES="$HOME/Documents/mydotfiles"
+BACKUP_DIR="$HOME/.config/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
 
-# Array of files/folders to symlink
-declare -A files=(
-    ["$HOME/.config/karabiner"]="$DOTFILES/karabiner"
-    ["$HOME/.config/kitty"]="$DOTFILES/kitty"
-    ["$HOME/.config/nvim"]="$DOTFILES/nvim"
-    ["$HOME/.config/sketchybar"]="$DOTFILES/sketchybar"
-    ["$HOME/.config/yabai"]="$DOTFILES/yabai"
-)
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+echo -e "${BLUE}Created backup directory at $BACKUP_DIR${NC}"
 
-# Function to backup existing files
-backup_file() {
-    local file=$1
-    if [ -e "$file" ]; then
-        echo -e "${BLUE}Backing up existing $file${NC}"
-        mv "$file" "$file.backup.$(date +%Y%m%d_%H%M%S)"
+# Function to safely remove directory or symlink
+safe_remove() {
+    local target=$1
+    if [ -e "$target" ] || [ -L "$target" ]; then
+        echo -e "${BLUE}Removing $target${NC}"
+        rm -rf "$target"
     fi
 }
 
-# Create necessary directories
-echo -e "${BLUE}Creating required directories...${NC}"
-mkdir -p "$HOME/.config"
-
-# Create symlinks
-for target in "${!files[@]}"; do
-    source="${files[$target]}"
+# Function to create symlink
+create_symlink() {
+    local target=$1
+    local source=$2
     
-    # Backup existing files/symlinks
-    backup_file "$target"
+    echo -e "\n${BLUE}Processing: $target${NC}"
+    
+    # Backup and remove existing directory/symlink
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+        echo -e "${BLUE}Backing up existing file/directory: $target${NC}"
+        cp -R "$target" "$BACKUP_DIR/"
+    fi
+    
+    # Remove existing directory or symlink
+    safe_remove "$target"
     
     # Create symbolic link
     echo -e "${GREEN}Creating symlink: $target -> $source${NC}"
-    ln -sf "$source" "$target"
+    ln -sfn "$source" "$target"
+    
+    # Verify the symlink
+    if [ -L "$target" ]; then
+        echo -e "${GREEN}✓ Successfully created symlink for $(basename "$target")${NC}"
+    else
+        echo -e "${RED}✗ Failed to create symlink for $(basename "$target")${NC}"
+    fi
+}
+
+# Create symlinks for each config
+create_symlink "$HOME/.config/karabiner" "$DOTFILES/karabiner"
+create_symlink "$HOME/.config/kitty" "$DOTFILES/kitty"
+create_symlink "$HOME/.config/nvim" "$DOTFILES/nvim"
+create_symlink "$HOME/.config/sketchybar" "$DOTFILES/sketchybar"
+create_symlink "$HOME/.config/yabai" "$DOTFILES/yabai"
+create_symlink "$HOME/.zshrc" "$DOTFILES/.zshrc"  # Added .zshrc symlink
+
+# Print results
+echo -e "\n${GREEN}Setup complete!${NC}"
+echo -e "${BLUE}Backup of old configurations can be found in: $BACKUP_DIR${NC}"
+
+# Verify all symlinks
+echo -e "\n${BLUE}Verifying symlinks:${NC}"
+for config in karabiner kitty nvim sketchybar yabai; do
+    target="$HOME/.config/$config"
+    if [ -L "$target" ]; then
+        echo -e "${GREEN}✓ $config is properly linked${NC}"
+    else
+        echo -e "${RED}✗ $config is not linked${NC}"
+    fi
 done
 
-echo -e "${GREEN}Setup complete! Your dotfiles are now symlinked.${NC}"
+# Verify .zshrc symlink separately
+if [ -L "$HOME/.zshrc" ]; then
+    echo -e "${GREEN}✓ .zshrc is properly linked${NC}"
+else
+    echo -e "${RED}✗ .zshrc is not linked${NC}"
+fi
