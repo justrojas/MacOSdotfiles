@@ -89,3 +89,5 @@ bindkey "^p" clear_screen
 
 # Initialize zoxide
 eval "$(zoxide init --cmd cd zsh)"
+
+export PATH="$PATH:$HOME/.luarocks/bin"
